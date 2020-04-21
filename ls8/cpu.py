@@ -48,9 +48,9 @@ class CPU:
 
     def trace(self):
         """
-		Handy function to print out the CPU state. You might want to call this
-		from run() if you need help debugging.
-		"""
+                Handy function to print out the CPU state. You might want to call this
+                from run() if you need help debugging.
+                """
 
         print(
             f"TRACE: %02X | %02X %02X %02X |"
@@ -87,13 +87,13 @@ class CPU:
             IR = self.ram[PC]
 
             if IR == self.LDI:
-                reg_num = self.ram_read(PC + 1)
+                register_num = self.ram_read(PC + 1)
                 value = self.ram_read(PC + 2)
-                self.ram_write(value, reg_num)
+                self.reg[register_num] = value
                 PC += 3
             elif IR == self.PRN:
-                reg_num = self.ram_read(PC + 1)
-                value = self.ram_read(reg_num)
+                register_num = self.ram_read(PC + 1)
+                value = self.reg[register_num]
                 print(value)
                 PC += 2
             elif IR == self.HLT:
