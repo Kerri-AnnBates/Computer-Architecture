@@ -15,6 +15,7 @@ class CPU:
         self.HLT = 0b00000001
         self.LDI = 0b10000010
         self.PRN = 0b01000111
+        self.MUL = 0b10100010
 
     def load(self):
         """Load a program into memory."""
@@ -108,6 +109,12 @@ class CPU:
                 value = self.reg[register_num]
                 print(value)
                 PC += 2
+            elif IR == self.MUL:
+                register_a = self.ram_read(PC + 1)
+                register_b = self.ram_read(PC + 2)
+                value = self.reg[register_a] * self.reg[register_b]
+                self.reg[register_a] = value
+                PC += 3
             elif IR == self.HLT:
                 self.running = False
             else:
