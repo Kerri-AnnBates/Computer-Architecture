@@ -12,10 +12,15 @@ class CPU:
         self.reg = [0] * 8  # R0 - R7
         self.pc = 0
         self.running = True
+        self.branchtable = {}
         self.HLT = 0b00000001
         self.LDI = 0b10000010
         self.PRN = 0b01000111
         self.MUL = 0b10100010
+        self.branchtable[self.HLT] = self.handle_halt
+        self.branchtable[self.LDI] = self.handle_ldi
+        self.branchtable[self.PRN] = self.handle_print
+        self.branchtable[self.MUL] = self.handle_mult
 
     def load(self):
         """Load a program into memory."""
@@ -61,9 +66,9 @@ class CPU:
 
     def trace(self):
         """
-                Handy function to print out the CPU state. You might want to call this
-                from run() if you need help debugging.
-                """
+                        Handy function to print out the CPU state. You might want to call this
+                        from run() if you need help debugging.
+                        """
 
         print(
             f"TRACE: %02X | %02X %02X %02X |"
@@ -91,6 +96,35 @@ class CPU:
         """Should accept a value to write, and the address to write it to."""
         self.ram[MAR] = MDR
 
+    def handle_print(self, pointer):
+        ''' Print value from register '''
+        register_num = self.ram_read(pointer + 1)
+        value = self.reg[register_num]
+        print(value)
+        pointer += 2
+        return pointer
+
+    def handle_mult(self, pointer):
+        ''' Multiply values stored in register '''
+        register_a = self.ram_read(pointer + 1)
+        register_b = self.ram_read(pointer + 2)
+        value = self.reg[register_a] * self.reg[register_b]
+        self.reg[register_a] = value
+        pointer += 3
+        return pointer
+
+    def handle_halt(self, pointer):
+        ''' Stops program from running '''
+        self.running = False
+
+    def handle_ldi(self, pointer):
+        ''' Store values in the register '''
+        register_num = self.ram_read(pointer + 1)
+        value = self.ram_read(pointer + 2)
+        self.reg[register_num] = value
+        pointer += 3
+        return pointer
+
     def run(self):
         """Run the CPU."""
         PC = self.pc
@@ -99,26 +133,30 @@ class CPU:
             # read the memory address that's stored in register PC and store that result in IR, Instruction Register
             IR = self.ram[PC]
 
-            if IR == self.LDI:
-                register_num = self.ram_read(PC + 1)
-                value = self.ram_read(PC + 2)
-                self.reg[register_num] = value
-                PC += 3
-            elif IR == self.PRN:
-                register_num = self.ram_read(PC + 1)
-                value = self.reg[register_num]
-                print(value)
-                PC += 2
-            elif IR == self.MUL:
-                register_a = self.ram_read(PC + 1)
-                register_b = self.ram_read(PC + 2)
-                value = self.reg[register_a] * self.reg[register_b]
-                self.reg[register_a] = value
-                PC += 3
-            elif IR == self.HLT:
-                self.running = False
+            if self.branchtable.get(IR):
+                PC = self.branchtable[IR](PC)
             else:
                 print("Uknown instruction")
                 self.running = False
 
-        # self.trace()
+            # if IR == self.LDI:
+            #     register_num = self.ram_read(PC + 1)
+            #     value = self.ram_read(PC + 2)
+            #     self.reg[register_num] = value
+            #     PC += 3
+            # elif IR == self.PRN:
+            #     register_num = self.ram_read(PC + 1)
+            #     value = self.reg[register_num]
+            #     print(value)
+            #     PC += 2
+            # elif IR == self.MUL:
+            #     register_a = self.ram_read(PC + 1)
+            #     register_b = self.ram_read(PC + 2)
+            #     value = self.reg[register_a] * self.reg[register_b]
+            #     self.reg[register_a] = value
+            #     PC += 3
+            # elif IR == self.HLT:
+            #     self.running = False
+            # else:
+            #     print("Uknown instruction")
+            #     self.running = False
