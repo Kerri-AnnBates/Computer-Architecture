@@ -17,10 +17,16 @@ class CPU:
         self.LDI = 0b10000010
         self.PRN = 0b01000111
         self.MUL = 0b10100010
+        self.PUSH = 0b01000101
+        self.POP = 0b01000110
         self.branchtable[self.HLT] = self.handle_halt
         self.branchtable[self.LDI] = self.handle_ldi
         self.branchtable[self.PRN] = self.handle_print
         self.branchtable[self.MUL] = self.handle_mult
+        self.branchtable[self.PUSH] = self.handle_push
+        self.branchtable[self.POP] = self.handle_pop
+        self.SP = 7
+        self.reg[self.SP] = 0xF4
 
     def load(self):
         """Load a program into memory."""
@@ -127,6 +133,32 @@ class CPU:
         self.reg[register_num] = value
         self.pc += 3
 
+    def handle_push(self):
+        # decrement the stack pointer
+        self.reg[self.SP] -= 1   # address_of_the_top_of_stack -= 1
+
+        # copy value from register into memory
+        reg_num = self.ram[self.pc + 1]
+        value = self.reg[reg_num]  # this is what we want to push
+
+        address = self.reg[self.SP]
+        self.ram[address] = value   # store the value on the stack
+
+        self.pc += 2
+
+    def handle_pop(self):
+        # copy value from memory into register
+        address = self.reg[self.SP]
+        value = self.ram[address]
+
+        reg_num = self.ram[self.pc + 1]
+        self.reg[reg_num] = value
+
+        # increment the stack pointer
+        self.reg[self.SP] += 1
+
+        self.pc += 2
+
     def run(self):
         """Run the CPU."""
         # PC = self.pc
@@ -141,6 +173,7 @@ class CPU:
                 print("Unknown instruction")
                 self.running = False
 
+            # self.trace()
             # if IR == self.LDI:
             #     register_num = self.ram_read(PC + 1)
             #     value = self.ram_read(PC + 2)
