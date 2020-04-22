@@ -60,7 +60,12 @@ class CPU:
 
         if op == "ADD":
             self.reg[reg_a] += self.reg[reg_b]
-        # elif op == "SUB": etc
+        elif op == "MUL":
+            self.reg[reg_a] *= self.reg[reg_b]
+        elif op == "SUB":
+            self.reg[reg_a] -= self.reg[reg_b]
+        elif op == "DIV":
+            self.reg[reg_a] /= self.reg[reg_b]
         else:
             raise Exception("Unsupported ALU operation")
 
@@ -96,47 +101,44 @@ class CPU:
         """Should accept a value to write, and the address to write it to."""
         self.ram[MAR] = MDR
 
-    def handle_print(self, pointer):
+    def handle_print(self):
         ''' Print value from register '''
-        register_num = self.ram_read(pointer + 1)
+        register_num = self.ram_read(self.pc + 1)
         value = self.reg[register_num]
         print(value)
-        pointer += 2
-        return pointer
+        self.pc += 2
 
-    def handle_mult(self, pointer):
+    def handle_mult(self):
         ''' Multiply values stored in register '''
-        register_a = self.ram_read(pointer + 1)
-        register_b = self.ram_read(pointer + 2)
-        value = self.reg[register_a] * self.reg[register_b]
-        self.reg[register_a] = value
-        pointer += 3
-        return pointer
+        register_a = self.ram_read(self.pc + 1)
+        register_b = self.ram_read(self.pc + 2)
 
-    def handle_halt(self, pointer):
+        self.alu('MUL', register_a, register_b)
+        self.pc += 3
+
+    def handle_halt(self):
         ''' Stops program from running '''
         self.running = False
 
-    def handle_ldi(self, pointer):
+    def handle_ldi(self):
         ''' Store values in the register '''
-        register_num = self.ram_read(pointer + 1)
-        value = self.ram_read(pointer + 2)
+        register_num = self.ram_read(self.pc + 1)
+        value = self.ram_read(self.pc + 2)
         self.reg[register_num] = value
-        pointer += 3
-        return pointer
+        self.pc += 3
 
     def run(self):
         """Run the CPU."""
-        PC = self.pc
+        # PC = self.pc
 
         while self.running:
             # read the memory address that's stored in register PC and store that result in IR, Instruction Register
-            IR = self.ram[PC]
+            IR = self.ram[self.pc]
 
             if self.branchtable.get(IR):
-                PC = self.branchtable[IR](PC)
+                self.branchtable[IR]()
             else:
-                print("Uknown instruction")
+                print("Unknown instruction")
                 self.running = False
 
             # if IR == self.LDI:
