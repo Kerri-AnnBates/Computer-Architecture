@@ -12,18 +12,23 @@ class CPU:
         self.reg = [0] * 8  # R0 - R7
         self.pc = 0
         self.running = True
-        self.branchtable = {}
         self.HLT = 0b00000001
         self.LDI = 0b10000010
         self.PRN = 0b01000111
         self.MUL = 0b10100010
         self.PUSH = 0b01000101
         self.POP = 0b01000110
-        self.branchtable[self.HLT] = self.handle_halt
-        self.branchtable[self.LDI] = self.handle_ldi
-        self.branchtable[self.PRN] = self.handle_print
-        self.branchtable[self.PUSH] = self.handle_push
-        self.branchtable[self.POP] = self.handle_pop
+        self.RET = 0b00010001
+        self.CALL = 0b01010000
+        self.branchtable = {
+            self.HLT: self.handle_halt,
+            self.LDI: self.handle_ldi,
+            self.PRN: self.handle_print,
+            self.PUSH: self.handle_push,
+            self.POP: self.handle_pop,
+            self.CALL: self.handle_call,
+            self.RET: self.handle_return
+        }
         self.SP = 7
         self.reg[self.SP] = 0xF4
 
@@ -154,6 +159,28 @@ class CPU:
         self.reg[self.SP] += 1
 
         self.pc += 2
+
+    def handle_call(self, op_a=None, op_b=None):
+        # Get the address directly after the call
+        return_address = self.pc + 2
+
+        # Push on the stack
+        self.reg[self.SP] -= 1
+        self.ram[self.reg[self.SP]] = return_address
+
+        # Set the PC to the value in the given register
+        reg_num = self.ram[self.pc + 1]
+        dest_addr = self.reg[reg_num]
+
+        self.pc = dest_addr
+
+    def handle_return(self, op_a=None, op_b=None):
+        # pop return address from top of stack
+        return_addr = self.ram[self.reg[self.SP]]
+        self.reg[self.SP] += 1
+
+        # Set the pc
+        self.pc = return_addr
 
     def run(self):
         """Run the CPU."""
