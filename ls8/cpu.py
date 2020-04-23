@@ -22,7 +22,6 @@ class CPU:
         self.branchtable[self.HLT] = self.handle_halt
         self.branchtable[self.LDI] = self.handle_ldi
         self.branchtable[self.PRN] = self.handle_print
-        self.branchtable[self.MUL] = self.handle_mult
         self.branchtable[self.PUSH] = self.handle_push
         self.branchtable[self.POP] = self.handle_pop
         self.SP = 7
@@ -64,13 +63,13 @@ class CPU:
     def alu(self, op, reg_a, reg_b):
         """ALU operations."""
 
-        if op == "ADD":
+        if op == 0b10100000:  # ADD
             self.reg[reg_a] += self.reg[reg_b]
-        elif op == "MUL":
+        elif op == 0b10100010:  # MUL
             self.reg[reg_a] *= self.reg[reg_b]
-        elif op == "SUB":
+        elif op == 0b10100001:  # SUB
             self.reg[reg_a] -= self.reg[reg_b]
-        elif op == "DIV":
+        elif op == 0b10100011:  # DIV
             self.reg[reg_a] /= self.reg[reg_b]
         else:
             raise Exception("Unsupported ALU operation")
@@ -107,38 +106,33 @@ class CPU:
         """Should accept a value to write, and the address to write it to."""
         self.ram[MAR] = MDR
 
-    def handle_print(self):
+    def handle_print(self, op_a=None, op_b=None):
         ''' Print value from register '''
-        register_num = self.ram_read(self.pc + 1)
+        register_num = op_a
         value = self.reg[register_num]
         print(value)
         self.pc += 2
 
-    def handle_mult(self):
-        ''' Multiply values stored in register '''
-        register_a = self.ram_read(self.pc + 1)
-        register_b = self.ram_read(self.pc + 2)
-
-        self.alu('MUL', register_a, register_b)
-        self.pc += 3
-
-    def handle_halt(self):
+    def handle_halt(self, op_a=None, op_b=None):
         ''' Stops program from running '''
         self.running = False
 
-    def handle_ldi(self):
+    def handle_ldi(self, op_a=None, op_b=None):
         ''' Store values in the register '''
-        register_num = self.ram_read(self.pc + 1)
-        value = self.ram_read(self.pc + 2)
+        register_num = op_a
+        value = op_b
+
         self.reg[register_num] = value
         self.pc += 3
 
-    def handle_push(self):
+    def handle_push(self, op_a=None, op_b=None):
         # decrement the stack pointer
         self.reg[self.SP] -= 1   # address_of_the_top_of_stack -= 1
 
         # copy value from register into memory
-        reg_num = self.ram[self.pc + 1]
+        # reg_num = self.ram[self.pc + 1]
+        reg_num = op_a
+
         value = self.reg[reg_num]  # this is what we want to push
 
         address = self.reg[self.SP]
@@ -146,12 +140,14 @@ class CPU:
 
         self.pc += 2
 
-    def handle_pop(self):
+    def handle_pop(self, op_a=None, op_b=None):
         # copy value from memory into register
         address = self.reg[self.SP]
         value = self.ram[address]
 
-        reg_num = self.ram[self.pc + 1]
+        # reg_num = self.ram[self.pc + 1]
+        reg_num = op_a
+
         self.reg[reg_num] = value
 
         # increment the stack pointer
@@ -166,14 +162,20 @@ class CPU:
         while self.running:
             # read the memory address that's stored in register PC and store that result in IR, Instruction Register
             IR = self.ram[self.pc]
+            register_a = self.ram_read(self.pc + 1)
+            register_b = self.ram_read(self.pc + 2)
+            use_alu = (IR & 0b110000) >> 5
 
-            if self.branchtable.get(IR):
-                self.branchtable[IR]()
+            if use_alu:
+                self.alu(IR, register_a, register_b)
+                self.pc += 3
+            elif self.branchtable.get(IR):
+                self.branchtable[IR](register_a, register_b)
             else:
                 print("Unknown instruction")
                 self.running = False
 
-            # self.trace()
+            self.trace()
             # if IR == self.LDI:
             #     register_num = self.ram_read(PC + 1)
             #     value = self.ram_read(PC + 2)
